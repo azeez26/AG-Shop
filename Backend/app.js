@@ -8,7 +8,7 @@ app.use(cors())
 
 require('dotenv/config')
 const api = process.env.API_URL
-const port = process.env.port
+const port = process.env.PORT
 
 
 
