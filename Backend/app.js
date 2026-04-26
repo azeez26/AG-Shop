@@ -24,11 +24,13 @@ app.use(errorHandler)
 const productsRouter = require('./routers/products')
 const categoriesRouter = require('./routers/categories')
 const usersRouter = require('./routers/users')
+const orderRouter = require('./routers/orders')
 
 
 app.use(`${api}/products`, productsRouter)
 app.use(`${api}/categories`, categoriesRouter)
 app.use(`${api}/users`, usersRouter)
+app.use(`${api}/order`, orderRouter)
 
 
 
