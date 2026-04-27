@@ -12,6 +12,7 @@ function authJwt(){
         path:[
             { url: new RegExp(`${api}/products(.*)`), methods: ['GET', 'OPTIONS'] },
             { url: new RegExp(`${api}/categories(.*)`), methods: ['GET', 'OPTIONS'] },
+            { url: /\/public\/upload(.*)/, methods: ['GET', 'OPTIONS'] },
             '/api/v1/users/login',
             '/api/v1/users/signup'
         ]

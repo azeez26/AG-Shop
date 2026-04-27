@@ -16,6 +16,7 @@ const port = process.env.PORT
 
 //Middlewares
 app.use(express.json())
+app.use('/public/uploads', express.static(__dirname + '/public/uploads'));
 app.use(morgan('tiny'))
 app.use(authJwt())
 app.use(errorHandler)
