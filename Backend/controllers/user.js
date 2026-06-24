@@ -1,17 +1,20 @@
 const Users = require("../models/user");
 const JWT = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+let catchAsync = require('../helper/catchAsync')
 
 
-let getAllUsers = async (req, res) => {
-    const usersList = await Users.find().select("-password");
+let getAllUsers = catchAsync(
+    async (req, res) => {
+        const usersList = await Users.find().select("-password");
 
-    if (!usersList) {
-        res.status(500).json({ success: false });
+        if (!usersList) {
+            res.status(500).json({ success: false });
+        }
+
+        res.send(usersList);
     }
-
-    res.send(usersList);
-}
+)
 
 
 let signup = async (req, res) => {

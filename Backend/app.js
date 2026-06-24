@@ -3,8 +3,9 @@ const app = express()
 const morgan = require('morgan')
 const mongoose = require('mongoose')
 const cors = require('cors')
-const authJwt = require('./helper/jwt')
-const errorHandler = require('./helper/error-handler')
+const authJwt = require('./middleware/jwt')
+const errorHandler = require('./middleware/error-handler')
+
 
 app.use(cors())
 
@@ -13,27 +14,27 @@ const api = process.env.API_URL
 const port = process.env.PORT
 
 
-
 //Middlewares
 app.use(express.json())
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'));
 app.use(morgan('tiny'))
-// app.use(authJwt())
-app.use(errorHandler)
+app.use(authJwt())
 
-//Routes
+//Routes imports
 const productsRouter = require('./routers/products')
 const categoriesRouter = require('./routers/categories')
 const usersRouter = require('./routers/users')
 const orderRouter = require('./routers/orders')
 
-
+//Routes using
 app.use(`${api}/products`, productsRouter)
 app.use(`${api}/categories`, categoriesRouter)
 app.use(`${api}/users`, usersRouter)
 app.use(`${api}/order`, orderRouter)
 
 
+//Error handler middleware
+app.use(errorHandler)
 
 
 
