@@ -8,15 +8,22 @@ let appError = require('../helper/appError')
 
 
 
-let addProduct = async (req, res) => {
-    try {
-        const category = await Category.findById(req.body.category);
-        if (!category) return res.status(400).send('Invalid Category');
+let addProduct = catchAsync(
+    async (req, res, next) => {
 
-        const file = req.file
-        if (!file) return res.status(400).send('No image has been uploaded');
-        const filename = req.file.filename
-        const baseUrl = `${req.protocol}://${req.get('host')}/public/uploads`
+        const category = await Category.findById(req.body.category);
+        if (!category) {
+            return next(new AppError('Invalid Category', 400));
+        }
+
+        const file = req.file;
+        if (!file) {
+            return next(new AppError('No image has been uploaded', 400));
+        }
+
+        const filename = req.file.filename;
+        const baseUrl = `${req.protocol}://${req.get('host')}/public/uploads/`;
+
         let product = new Product({
             name: req.body.name,
             description: req.body.description,
@@ -34,33 +41,31 @@ let addProduct = async (req, res) => {
         product = await product.save();
 
         if (!product) {
-            return res.status(500).send('The product cannot be created');
-        } else {
-            res.status(201).send(product)
+            return next(new AppError('The product cannot be created', 500));
         }
-
-    } catch (err) {
-        return res.status(500).json({ success: false, error: err.message });
+        res.status(201).json({
+            success: true,
+            data: product
+        });
     }
-}
+);
 
-let allProducts = async (req, res) => {
-    try {
+let getAllProducts = catchAsync(
+    async (req, res, next) => {
+
         let filter = {}
         if (req.query.categories) {
             filter = { category: req.query.categories.split(',') }
         }
         const productList = await Product.find(filter).populate('category')
 
-        res.status(200).send(productList)
-    } catch (err) {
-        return res.status(500).json({
-            success: false,
-            message: "Error fetching products",
-            error: err.message
-        });
+        res.status(200).json({
+            success: true,
+            count: productList.length,
+            data: productList
+        })
     }
-}
+)
 
 let productById = catchAsync(
     async (req, res, next) => {
@@ -69,18 +74,21 @@ let productById = catchAsync(
         if (!product) {
             return next(new appError("Product not found", 404))
         }
-        res.send(product);
+        res.status(200).json({
+            success: true,
+            data: product
+        })
     }
 )
 
 
-let updateProduct = async (req, res) => {
-    try {
-        if (!mongoose.isValidObjectId(req.params.id)) {
-            return res.status(400).send('Invalid Product Id');
-        }
+let updateProduct = catchAsync(
+    async (req, res, next) => {
+
         const category = await Category.findById(req.body.category);
-        if (!category) return res.status(400).send('Invalid Category');
+        if (!category) {
+            return next(new appError('Invalid Category', 400));
+        }
 
         const product = await Product.findByIdAndUpdate(
             req.params.id,
@@ -97,87 +105,77 @@ let updateProduct = async (req, res) => {
                 numReviews: req.body.numReviews,
                 isFeatured: req.body.isFeatured,
             },
-            { returnDocument: 'after' }
+            { returnDocument: 'after', runValidator: true }
         );
 
         if (!product) return res.status(500).send('the product cannot be found!');
 
-        res.status(200).send(product)
-    } catch (err) {
-        return res.status(500).json({
-            success: false,
-            error: err.message
-        });
+        res.status(200).json({
+            success: true,
+            data: product
+        })
     }
-}
+)
 
 
-let deleteProduct = async (req, res) => {
-    try {
+let deleteProduct = catchAsync(
+    async (req, res,next) => {
+
         const product = await Product.findByIdAndDelete(req.params.id);
 
-        if (product) {
-            return res.status(200).json({
-                success: true,
-                message: 'The product is deleted!'
-            });
-        } else {
-            return res.status(404).json({
-                success: false,
-                message: "Product not found!"
-            });
+        if (!product){
+            return next(new appError('Product not found!', 404))
         }
-    } catch (err) {
-        return res.status(400).json({
-            success: false,
-            error: err.message
-        });
+
+        res.status(200).json({
+            success: true,
+            message: 'The product is deleted successfully!'
+        })
     }
-}
+)
 
-let productCount = async (req, res) => {
-    try {
-        const productCount = await Product.countDocuments();
+let getProductCount = catchAsync(
+    async (req, res, next) => {
 
-        res.status(200).send({
-            productCount: productCount
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, error: err.message });
+        const count = await Product.countDocuments();
+
+        res.status(200).json({
+            success: true,
+            data: count
+        })
     }
-}
+)
 
-let featuredCount = async (req, res) => {
-    try {
+let getFeaturedProducts = catchAsync(
+    async (req, res, next) => {
+
         const count = req.params.count ? req.params.count : 0;
 
         const products = await Product.find({ isFeatured: true }).limit(+count);
 
-        if (!products) {
-            return res.status(404).json({ success: false, message: "No featured products found" });
+        if (!products || products.length === 0) {
+            return next(new appError('No featured products found!', 404));
         }
 
-        res.status(200).send(products);
-    } catch (err) {
-        return res.status(500).json({ success: false, error: err.message });
+        res.status(200).json({
+            success: true,
+            data: products
+        });
     }
-}
+);
 
-let updateProductImages = async (req, res) => {
-    try {
-        if (!mongoose.isValidObjectId(req.params.id)) {
-            return res.status(400).send('Invalid Product Id');
-        }
+
+let updateProductImages = catchAsync(
+    async (req, res,next) => {
 
         const files = req.files;
-        let imagesPaths = [];
-        const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`;
-
-        if (files) {
-            files.map((file) => {
-                imagesPaths.push(`${basePath}${file.filename}`);
-            });
+        if(!files || files.length === 0){
+            return next(new appError('Please upload at least one image!', 400))
         }
+        const basePath = `${req.protocol}://${req.get('host')}/public/uploads/`
+
+        const imagesPath = files.map(file => `${basePath}${file.filename}`)
+        
         const product = await Product.findByIdAndUpdate(
             req.params.id,
             {
@@ -186,13 +184,16 @@ let updateProductImages = async (req, res) => {
             { returnDocument: 'after' }
         );
 
-        if (!product) return res.status(500).send('the gallery cannot be updated!');
+        if(!product){
+            return next(new appError('the gallery cannot be updated!', 404))
+        }
 
-        res.send(product);
-    } catch (err) {
-        res.status(400).json(err.message)
+        res.status(200).json({
+            success: true,
+            data: product
+        })
     }
-}
+)
 
 
-module.exports = { addProduct, allProducts, productById, updateProduct, deleteProduct, productCount, featuredCount, updateProductImages }
+module.exports = { addProduct, getAllProducts, productById, updateProduct, deleteProduct, getProductCount, getFeaturedProducts, updateProductImages }
