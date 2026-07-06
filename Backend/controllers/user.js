@@ -1,106 +1,86 @@
 const Users = require("../models/user");
-const JWT = require("jsonwebtoken");
+const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcrypt");
-let catchAsync = require('../helper/catchAsync')
+const catchAsync = require("../utils/catchAsync");
+const appError = require("../utils/appError");
 
+let getAllUsers = catchAsync(async (req, res, next) => {
+  const usersList = await Users.find().select("-password");
 
-let getAllUsers = catchAsync(
-    async (req, res) => {
-        const usersList = await Users.find().select("-password");
+  res.status(200).json({
+    success: true,
+    count: usersList.length,
+    data: usersList,
+  });
+});
 
-        if (!usersList) {
-            res.status(500).json({ success: false });
-        }
+let signup = catchAsync(async (req, res, next) => {
+  const newUser = await Users.create({
+    name: req.body.name,
+    email: req.body.email,
+    password: req.body.password,
+    phone: req.body.phone,
+    street: req.body.street,
+    apartment: req.body.apartment,
+    zip: req.body.zip,
+    city: req.body.city,
+    country: req.body.country,
+  });
 
-        res.send(usersList);
-    }
-)
+  if (!newUser) {
+    return next(new appError("User can not be created", 400));
+  }
 
+  //using rest params to take the rest of the response whithout the password
+  const { password, ...restResponse } = newUser.toObject();
+  res.status(201).json({
+    success: true,
+    data: restResponse,
+  });
+});
 
-let signup = async (req, res) => {
-    try {
-        const newUser = await Users.create({
-            name: req.body.name,
-            email: req.body.email,
-            password: req.body.password,
-            phone: req.body.phone,
-            isAdmin: req.body.isAdmin,
-            street: req.body.street,
-            apartment: req.body.apartment,
-            zip: req.body.zip,
-            city: req.body.city,
-            country: req.body.country,
-        });
-        //using rest params to take the rest of the response whithout the password
-        const { password, ...restResponse } = newUser.toObject();
-        res.status(201).send(restResponse);
-    } catch (err) {
-        res.status(400).json({ error: err.message, message: "You cant signup" });
-    }
-}
+let login = catchAsync(async (req, res, next) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return next(new appError("Please provide email and password", 400));
+  }
 
-let login = async (req, res) => {
-    try {
-        const user = { email: req.body.email, password: req.body.password };
-        const userInDB = await Users.findOne({ email: user.email });
-        const secret = process.env.JWT_SECRET;
-        console.log(userInDB)
-        if (!userInDB) {
-            return res.status(404).send("No such user");
-        }
+  const userInDB = await Users.findOne({ email });
+  if (!userInDB || !bcrypt.compareSync(password, userInDB.password)) {
+    return next(new appError("Invalid email or password", 401));
+  }
 
-        if (userInDB && bcrypt.compareSync(user.password, userInDB.password)) {
-            const token = JWT.sign(
-                {
-                    userId: userInDB._id,
-                    isAdmin: userInDB.isAdmin,
-                    username: userInDB.name,
-                },
-                secret,
-                { expiresIn: "1d" },
-            );
+  const token = generateToken(userInDB);
 
-            return res.status(200).send({ user: user.email, token: token });
-        }
-        return res.status(400).send("Invalid email or password");
-    } catch (err) {
-        res.status(400).send(err.message);
-    }
-}
+  res.status(200).json({
+    success: true,
+    data: {
+      user: userInDB.email,
+      token: token,
+    },
+  });
+});
 
-let userCount = async (req, res) => {
-    try {
-        const usersCount = await Users.countDocuments();
+let getUserCount = catchAsync(async (req, res, next) => {
+  const count = await Users.countDocuments();
 
-        res.status(200).send({
-            usersCount: usersCount,
-        });
-    } catch (err) {
-        return res.status(500).json({ success: false, error: err.message });
-    }
-}
+  res.status(200).json({
+    success: true,
+    count: usersCount,
+  });
+});
 
-let deleteUser = async (req, res) => {
-    try {
-        const user = await Users.findByIdAndDelete(req.params.id);
+let deleteUser = catchAsync(async (req, res, next) => {
+  const user = await Users.findByIdAndDelete(req.params.id);
 
-        if (user) {
-            return res.status(200).json({
-                success: true,
-                message: "The user is deleted!",
-            });
-        } else {
-            return res.status(404).json({
-                success: false,
-                message: "user not found!",
-            });
-        }
-    } catch (err) {
-        return res.status(400).json({
-            success: false,
-            error: err.message,
-        });
-    }
-}
+  if (!user) {
+    return next(new appError("This user can not be found", 404));
+  }
 
-module.exports = { getAllUsers, signup, login, userCount, deleteUser }
+  return res.status(200).json({
+    success: true,
+    message: "The user has been deleted",
+  });
+});
+
+module.exports = { getAllUsers, signup, login, getUserCount, deleteUser };

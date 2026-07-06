@@ -3,8 +3,8 @@ const Product = require('../models/product')
 const Category = require('../models/category');
 const multer = require('multer')
 
-let catchAsync = require('../helper/catchAsync')
-let appError = require('../helper/appError')
+let catchAsync = require('../utils/catchAsync')
+let appError = require('../utils/appError')
 
 
 

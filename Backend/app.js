@@ -3,7 +3,6 @@ const app = express()
 const morgan = require('morgan')
 const mongoose = require('mongoose')
 const cors = require('cors')
-const authJwt = require('./middleware/jwt')
 const errorHandler = require('./middleware/error-handler')
 
 
@@ -18,7 +17,7 @@ const port = process.env.PORT
 app.use(express.json())
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'));
 app.use(morgan('tiny'))
-app.use(authJwt())
+
 
 //Routes imports
 const productsRouter = require('./routers/products')

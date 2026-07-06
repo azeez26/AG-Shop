@@ -1,18 +1,16 @@
 const express = require("express");
 const router = express.Router();
-// const Users = require("../models/user");
-// const JWT = require("jsonwebtoken");
-// const bcrypt = require("bcrypt");
-let {getAllUsers, signup, login, userCount, deleteUser} = require('../controllers/user.js')
-
-router.get("/", getAllUsers);
+const {JWTProtection, restrictToAdmin} = require("../middleware/jwt")
+let {getAllUsers, signup, login, getUserCount, deleteUser} = require('../controllers/user.js')
 
 router.post("/signup", signup);
 
 router.post("/login", login);
 
-router.get("/get/count", userCount);
+router.get("/", JWTProtection, restrictToAdmin ,getAllUsers);
 
-router.delete("/:id", deleteUser);
+router.get("/get/count", JWTProtection, restrictToAdmin ,getUserCount);
+
+router.delete("/:id", JWTProtection, restrictToAdmin ,deleteUser);
 
 module.exports = router;
