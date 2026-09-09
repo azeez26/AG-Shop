@@ -984,6 +984,6 @@ This project is licensed under the ISC License.
 
 ## Author
 
-Developed as a backend training project using the Node.js / Express.js / MongoDB stack.
+Developed by Mostafa Abdulazeez as a backend training project using the Node.js / Express.js / MongoDB stack.
 
 If you find this project useful, feel free to fork the repository, experiment with the API, and improve the implementation.
